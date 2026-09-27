@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Compass, Sparkles, ArrowRight, ShieldCheck, User } from "lucide-react";
+import { Compass, ArrowRight, ShieldCheck, User, AlertCircle, KeyRound, Copy, Check } from "lucide-react";
 import Link from "next/link";
 
 function SignInContent() {
@@ -11,8 +11,26 @@ function SignInContent() {
   const callbackUrl = searchParams.get("callbackUrl") || "/projects";
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const [hasGoogleAuth, setHasGoogleAuth] = useState<boolean | null>(null);
+  const [redirectUri, setRedirectUri] = useState<string>("http://localhost:3000/api/auth/callback/google");
+  const [showConfigAlert, setShowConfigAlert] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/config-status")
+      .then((res) => res.json())
+      .then((data) => {
+        setHasGoogleAuth(data.hasGoogleAuth);
+        if (data.redirectUri) setRedirectUri(data.redirectUri);
+      })
+      .catch(() => setHasGoogleAuth(false));
+  }, []);
 
   const handleGoogleSignIn = async () => {
+    if (hasGoogleAuth === false) {
+      setShowConfigAlert(true);
+      return;
+    }
     setLoadingGoogle(true);
     await signIn("google", { callbackUrl });
   };
@@ -24,6 +42,12 @@ function SignInContent() {
       name: "Elena Rostova (Lead Designer)",
       callbackUrl,
     });
+  };
+
+  const copyRedirectUri = () => {
+    navigator.clipboard.writeText(redirectUri);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -58,14 +82,63 @@ function SignInContent() {
           </p>
         </div>
 
+        {/* Missing Google OAuth credentials warning */}
+        {showConfigAlert && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-stone-200 text-xs space-y-2.5">
+            <div className="flex items-center gap-2 text-amber-400 font-medium font-mono text-[11px] uppercase tracking-wider">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Google OAuth Not Yet Configured</span>
+            </div>
+            <p className="text-stone-300 text-xs leading-relaxed">
+              <code className="text-amber-300 font-mono">GOOGLE_CLIENT_ID</code> and{" "}
+              <code className="text-amber-300 font-mono">GOOGLE_CLIENT_SECRET</code> are empty in your{" "}
+              <code className="text-amber-300 font-mono">.env.local</code>.
+            </p>
+            <p className="text-stone-400 text-[11px] leading-relaxed">
+              Use the <strong className="text-white">Instant Demo Access</strong> button below to test everything right now, or create an OAuth Client in{" "}
+              <span className="text-amber-300">Google Cloud Console</span> with redirect URI:
+            </p>
+            <div className="flex items-center justify-between p-2 rounded-lg bg-black/50 border border-stone-800 font-mono text-[10px] text-stone-300">
+              <span className="truncate mr-2">{redirectUri}</span>
+              <button
+                onClick={copyRedirectUri}
+                className="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1"
+              >
+                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
+          {/* Instant Studio Demo / Developer Access - highlighted for effortless zero-config testing */}
+          <button
+            onClick={handleDemoSignIn}
+            disabled={loadingGoogle || loadingDemo}
+            className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl font-medium text-xs font-mono uppercase tracking-wider transition shadow-lg shadow-amber-950/30 disabled:opacity-50"
+          >
+            <User className="w-4 h-4 text-amber-200" />
+            <span>
+              {loadingDemo ? "Accessing Studio..." : "Instant Studio Access (Elena Rostova)"}
+            </span>
+            <ArrowRight className="w-3.5 h-3.5 text-amber-200" />
+          </button>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-stone-800" />
+            <span className="flex-shrink mx-4 text-[10px] uppercase font-mono tracking-widest text-stone-500">
+              OR SIGN IN WITH GOOGLE
+            </span>
+            <div className="flex-grow border-t border-stone-800" />
+          </div>
+
           {/* Google OAuth Button */}
           <button
             onClick={handleGoogleSignIn}
             disabled={loadingGoogle || loadingDemo}
-            className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-stone-100 hover:bg-white text-stone-900 rounded-2xl font-medium text-xs font-mono uppercase tracking-wider transition shadow-md hover:shadow-lg disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-stone-100 hover:bg-white text-stone-900 rounded-2xl font-medium text-xs font-mono uppercase tracking-wider transition shadow-md hover:shadow-lg disabled:opacity-50 relative"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -84,27 +157,11 @@ function SignInContent() {
               />
             </svg>
             <span>{loadingGoogle ? "Connecting to Google..." : "Continue with Google"}</span>
-          </button>
-
-          <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-stone-800" />
-            <span className="flex-shrink mx-4 text-[10px] uppercase font-mono tracking-widest text-stone-500">
-              OR TEST STUDIO DIRECTLY
-            </span>
-            <div className="flex-grow border-t border-stone-800" />
-          </div>
-
-          {/* Instant Studio Demo / Developer Access */}
-          <button
-            onClick={handleDemoSignIn}
-            disabled={loadingGoogle || loadingDemo}
-            className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-700/60 text-stone-200 rounded-2xl font-medium text-xs font-mono uppercase tracking-wider transition shadow-sm hover:border-amber-500/50 disabled:opacity-50"
-          >
-            <User className="w-4 h-4 text-amber-500" />
-            <span>
-              {loadingDemo ? "Accessing Studio..." : "Instant Demo Access (Elena Rostova)"}
-            </span>
-            <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
+            {hasGoogleAuth === false && (
+              <span className="text-[10px] font-mono text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded ml-1">
+                Keys Needed
+              </span>
+            )}
           </button>
         </div>
 

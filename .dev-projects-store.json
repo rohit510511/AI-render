@@ -1,5 +1,36 @@
 [
   {
+    "_id": "6ab955444a75cace2593106b",
+    "userId": "102146924466987686832",
+    "clientName": "temp lonavala villa",
+    "roomType": "living-room",
+    "style": "scandinavian",
+    "colorPalette": "Warm Ochre, Bouclé Ivory & Natural Oak",
+    "budgetRange": "medium",
+    "notes": "",
+    "status": "render-generated",
+    "moodboardImages": [
+      {
+        "url": "/uploads/generated/gen-1790531073161-fdvga3l.png",
+        "cloudinaryId": "local_gen-1790531073161-fdvga3l.png",
+        "generatedAt": "2026-09-27T17:44:33.163Z",
+        "prompt": "Editorial interior design moodboard and tactile material palette for a high-end scandinavian living room. Color palette: Warm Ochre, Bouclé Ivory & Natural Oak. Collage of architectural textures, fabric swatches, stone marble samples, wood finishes, bespoke lighting fixtures, and interior decor inspiration. Architectural digest style, balanced composition, soft studio lighting, ultra-high resolution, hyper-detailed craftsmanship.",
+        "model": "sdxl"
+      }
+    ],
+    "renderImages": [
+      {
+        "url": "/uploads/generated/gen-1790531089353-pxknwwu.png",
+        "cloudinaryId": "local_gen-1790531089353-pxknwwu.png",
+        "generatedAt": "2026-09-27T17:44:49.357Z",
+        "prompt": "Ultra-photorealistic interior architecture photograph of an exquisite scandinavian living room. Tonal palette: Warm Ochre, Bouclé Ivory & Natural Oak. High-end contemporary designer furniture, refined finishes, and tailored accents. Natural cinematic morning sunlight streaming through expansive architectural windows, soft realistic ambient occlusion shadows, tactile bouclé upholstery, brushed brass details, polished concrete and chevron hardwood flooring. Shot on Hasselblad H6D-100c, 35mm lens, f/8 aperture, architectural photography, octane render, unreal engine 5 architectural visualization, 8k resolution, crisp pristine clarity.",
+        "model": "flux-schnell"
+      }
+    ],
+    "createdAt": "2026-09-27T17:41:24.370Z",
+    "updatedAt": "2026-09-27T17:44:51.368Z"
+  },
+  {
     "_id": "6ab94b01123ceac45fbe9e51",
     "userId": "665f1a2b3c4d5e6f7a8b9c0d",
     "clientName": "Tribeca Loft Penthouse",

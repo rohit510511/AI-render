@@ -1,53 +1,39 @@
 import { NextAuthOptions, getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import { clientPromise } from "./mongodb";
 
 export const authOptions: NextAuthOptions = {
-  // Use MongoDB adapter for persistent user and account storage
-  adapter: process.env.MONGODB_URI ? MongoDBAdapter(clientPromise) : undefined,
+  // No adapter — using pure JWT sessions.
+  // The MongoDB adapter causes OAUTH_CALLBACK_HANDLER_ERROR when local MongoDB
+  // is not running because it tries getUserByAccount during Google's callback.
+  // JWT strategy stores everything in a signed cookie; no DB lookup needed.
   session: {
-    // JWT strategy allows hybrid support for both Google OAuth and Developer Test logins
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
-    // 1. Google OAuth Provider (Requested primary auth)
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      ? [
-          GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          }),
-        ]
-      : [
-          // Fallback provider placeholder if Google keys aren't added yet
-          GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID || "placeholder-google-client-id",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "placeholder-google-client-secret",
-          }),
-        ]),
+    // 1. Google OAuth Provider
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "placeholder-id",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "placeholder-secret",
+    }),
 
     // 2. Instant Studio Demo / Developer Access Provider
-    // Ensures developers & reviewers can test all features without requiring immediate GCP setup
     CredentialsProvider({
       id: "credentials",
       name: "Interior Studio Access",
       credentials: {
-        email: { label: "Studio Email", type: "email", placeholder: "designer@aurastudio.com" },
+        email: { label: "Studio Email", type: "email", placeholder: "designer@lumenatelier.com" },
         name: { label: "Designer Name", type: "text", placeholder: "Elena Rostova" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) {
-          return null;
-        }
-
+        if (!credentials?.email) return null;
         return {
-          id: "665f1a2b3c4d5e6f7a8b9c0d", // Standard 24-char ObjectId format
+          id: "665f1a2b3c4d5e6f7a8b9c0d",
           email: credentials.email,
           name: credentials.name || "Elena Rostova (Lead Designer)",
-          image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+          image:
+            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
         };
       },
     }),
@@ -56,19 +42,27 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
+        // For credentials sign-in
         token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.picture = user.image;
+      }
+      if (account?.provider === "google" && profile) {
+        // For Google sign-in, use the Google sub as a stable ID
+        token.id = (profile as any).sub || token.sub;
+        token.picture = (profile as any).picture || token.picture;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        // Ensure user ID is always string / ObjectId-compatible
-        session.user.id = (token.id as string) || (token.sub as string) || "665f1a2b3c4d5e6f7a8b9c0d";
+        session.user.id =
+          (token.id as string) ||
+          (token.sub as string) ||
+          "665f1a2b3c4d5e6f7a8b9c0d";
+        if (token.picture) {
+          session.user.image = token.picture as string;
+        }
       }
       return session;
     },
